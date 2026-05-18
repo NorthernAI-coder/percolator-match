@@ -7,16 +7,13 @@
 //! All matchers use the same MatcherCtx layout with a `kind` field.
 
 use solana_program::{
-    account_info::AccountInfo,
-    entrypoint::ProgramResult,
-    program_error::ProgramError,
+    account_info::AccountInfo, entrypoint::ProgramResult, program_error::ProgramError,
     pubkey::Pubkey,
 };
 
 use crate::{
-    MatcherCall, MatcherReturn,
-    CTX_VAMM_OFFSET, CTX_VAMM_LEN, MATCHER_CONTEXT_LEN,
-    FLAG_VALID, FLAG_PARTIAL_OK,
+    MatcherCall, MatcherReturn, CTX_VAMM_LEN, CTX_VAMM_OFFSET, FLAG_PARTIAL_OK, FLAG_VALID,
+    MATCHER_CONTEXT_LEN,
 };
 
 // =============================================================================
@@ -81,47 +78,47 @@ pub const MATCHER_VERSION: u32 = 3;
 pub struct MatcherCtx {
     // ---- Header (16 bytes) ----
     /// Magic number for initialization check
-    pub magic: u64,                     // 8 bytes, offset 0
+    pub magic: u64, // 8 bytes, offset 0
     /// Version number
-    pub version: u32,                   // 4 bytes, offset 8
+    pub version: u32, // 4 bytes, offset 8
     /// Matcher kind: 0 = Passive, 1 = vAMM
-    pub kind: u8,                       // 1 byte, offset 12
-    pub _pad0: [u8; 3],                 // 3 bytes, offset 13
+    pub kind: u8, // 1 byte, offset 12
+    pub _pad0: [u8; 3], // 3 bytes, offset 13
 
     // ---- LP PDA (32 bytes) ----
     /// LP PDA that must sign matcher calls
-    pub lp_pda: [u8; 32],               // 32 bytes, offset 16
+    pub lp_pda: [u8; 32], // 32 bytes, offset 16
 
     // ---- Fee/Spread Parameters (16 bytes) ----
     /// Trading fee in basis points (e.g., 5 = 0.05%)
-    pub trading_fee_bps: u32,           // 4 bytes, offset 48
+    pub trading_fee_bps: u32, // 4 bytes, offset 48
     /// Base spread in basis points (e.g., 10 = 0.10%)
-    pub base_spread_bps: u32,           // 4 bytes, offset 52
+    pub base_spread_bps: u32, // 4 bytes, offset 52
     /// Maximum total bps cap (e.g., 200 = 2.00%)
-    pub max_total_bps: u32,             // 4 bytes, offset 56
+    pub max_total_bps: u32, // 4 bytes, offset 56
     /// Impact multiplier (vAMM only, 0 for passive)
-    pub impact_k_bps: u32,              // 4 bytes, offset 60
+    pub impact_k_bps: u32, // 4 bytes, offset 60
 
     // ---- Liquidity/Fill Parameters (32 bytes) ----
     /// Quoting depth in notional-e6 (vAMM only, 0 for passive)
-    pub liquidity_notional_e6: u128,    // 16 bytes, offset 64
+    pub liquidity_notional_e6: u128, // 16 bytes, offset 64
     /// Maximum |exec_size| per call (0 = zero fill only)
-    pub max_fill_abs: u128,             // 16 bytes, offset 80
+    pub max_fill_abs: u128, // 16 bytes, offset 80
 
     // ---- State (32 bytes) ----
     /// LP inventory in base units
-    pub inventory_base: i128,           // 16 bytes, offset 96
+    pub inventory_base: i128, // 16 bytes, offset 96
     /// Last oracle price seen
-    pub last_oracle_price_e6: u64,      // 8 bytes, offset 112
+    pub last_oracle_price_e6: u64, // 8 bytes, offset 112
     /// Last execution price
-    pub last_exec_price_e6: u64,        // 8 bytes, offset 120
+    pub last_exec_price_e6: u64, // 8 bytes, offset 120
 
     // ---- Limits (16 bytes) ----
     /// Maximum absolute inventory (0 = no limit)
-    pub max_inventory_abs: u128,        // 16 bytes, offset 128
+    pub max_inventory_abs: u128, // 16 bytes, offset 128
 
     // ---- Reserved (112 bytes) ----
-    pub _reserved: [u8; 112],           // 112 bytes, offset 144
+    pub _reserved: [u8; 112], // 112 bytes, offset 144
 }
 
 // Compile-time size check
@@ -490,7 +487,7 @@ pub fn process_call(
         req_id: call.req_id,
         lp_account_id: call.lp_account_id,
         oracle_price_e6: call.oracle_price_e6,
-        reserved: 0,
+        asset_index: call.asset_index as u64,
     };
 
     let mut data = ctx_account.try_borrow_mut_data()?;
@@ -647,7 +644,11 @@ fn compute_vamm_execution(
 }
 
 /// Check and enforce inventory limit
-fn check_inventory_limit(ctx: &MatcherCtx, fill_abs: u128, is_buy: bool) -> Result<u128, ProgramError> {
+fn check_inventory_limit(
+    ctx: &MatcherCtx,
+    fill_abs: u128,
+    is_buy: bool,
+) -> Result<u128, ProgramError> {
     if ctx.max_inventory_abs == 0 {
         return Ok(fill_abs);
     }
@@ -687,11 +688,11 @@ fn check_inventory_limit(ctx: &MatcherCtx, fill_abs: u128, is_buy: bool) -> Resu
 // =============================================================================
 
 // Re-export old names for lib.rs compatibility
+pub use process_call as process_vamm_call;
+pub use process_init as process_init_vamm;
 pub use MatcherCtx as VammCtx;
 pub use MatcherKind as MatcherMode;
 pub use MATCHER_MAGIC as VAMM_MAGIC;
-pub use process_init as process_init_vamm;
-pub use process_call as process_vamm_call;
 
 // Legacy type aliases
 pub type InitVammParams = InitParams;
@@ -750,7 +751,7 @@ mod tests {
     fn make_call(oracle_price: u64, req_size: i128) -> MatcherCall {
         MatcherCall {
             req_id: 1,
-            lp_idx: 0,
+            asset_index: 0,
             lp_account_id: 100,
             oracle_price_e6: oracle_price,
             req_size,

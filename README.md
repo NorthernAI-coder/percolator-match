@@ -80,7 +80,7 @@ Executes passive matching logic. Requires LP PDA to be a signer and match the st
 |--------|-------|------|-------------|
 | 0 | tag | u8 | Always 0 |
 | 1-9 | req_id | u64 | Request ID (echoed) |
-| 9-11 | lp_idx | u16 | LP account index |
+| 9-11 | asset_index | u16 | Market asset index, echoed in the response |
 | 11-19 | lp_account_id | u64 | LP account ID (echoed) |
 | 19-27 | oracle_price_e6 | u64 | Oracle price (1e6 scaled) |
 | 27-43 | req_size | i128 | Requested size (+buy/-sell) |
@@ -90,14 +90,14 @@ Executes passive matching logic. Requires LP PDA to be a signer and match the st
 
 | Offset | Field | Type | Description |
 |--------|-------|------|-------------|
-| 0-4 | abi_version | u32 | Always 1 |
+| 0-4 | abi_version | u32 | Always 3 |
 | 4-8 | flags | u32 | VALID=1, PARTIAL_OK=2, REJECTED=4 |
 | 8-16 | exec_price_e6 | u64 | Execution price |
 | 16-32 | exec_size | i128 | Executed size |
 | 32-40 | req_id | u64 | Echo of req_id |
 | 40-48 | lp_account_id | u64 | Echo of lp_account_id |
 | 48-56 | oracle_price_e6 | u64 | Echo of oracle_price_e6 |
-| 56-64 | reserved | u64 | Always 0 |
+| 56-64 | asset_index | u64 | Echo of asset_index |
 
 ### Tag 1: Initialize
 
